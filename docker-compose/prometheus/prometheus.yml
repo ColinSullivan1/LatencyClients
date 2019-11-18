@@ -1,0 +1,12 @@
+global:
+  scrape_interval:     3s
+
+  external_labels:
+      monitor: 'nats-latency-demo'
+
+# A scrape configuration containing exactly one endpoint to scrape.
+scrape_configs:
+  - job_name: 'latency-requestor'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['demo-nats-requestor:8675']

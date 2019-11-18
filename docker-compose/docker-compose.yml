@@ -1,0 +1,68 @@
+version: "3"
+
+networks:
+  nats-net:
+    driver: bridge
+
+services:
+  # server:
+  #   image: nats:latest
+  #   container_name: nats-server
+  #   entrypoint: /nats-server
+  #   networks:
+  #     - nats-net
+  #   labels:
+  #     org.label-schema.group: "nats-demo"
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_DOCKER_TAG}
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - $PROMETHEUS_STORAGE:/usr/local/share/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/usr/local/share/prometheus
+    networks:
+      - nats-net
+    labels:
+      org.label-schema.group: "nats-demo"
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_DOCKER_TAG}
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - nats-net
+    labels:
+      org.label-schema.group: "nats-demo"
+    depends_on:
+      - prometheus
+
+  replier:
+    image: ${ACCOUNT}/demo-service-replier:latest
+    container_name: demo-nats-replier
+    entrypoint: /service-replier
+    command: -s ${SERVER_URL}
+    networks:
+      - nats-net
+    labels:
+      org.label-schema.group: "nats-demo"
+    depends_on:
+      - prometheus    
+
+  requestor:
+    image: ${ACCOUNT}/demo-service-requestor:latest
+    container_name: demo-nats-requestor
+    entrypoint: /service-requestor
+    command: -s ${SERVER_URL} -delay "100ms"
+    networks:
+      - nats-net
+    labels:
+      org.label-schema.group: "nats-demo"
+    depends_on:
+      - replier        
